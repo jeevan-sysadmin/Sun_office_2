@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteRule ^dashboard/?$ /sunoffice/dashboard [R=302,L]
+  RewriteRule ^login/?$ /sunoffice/login [R=302,L]
+</IfModule>
