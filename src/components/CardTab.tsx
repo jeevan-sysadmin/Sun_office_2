@@ -2508,10 +2508,10 @@ const CardTab: React.FC<CardTabProps> = ({
   
   // Pagination calculations
   const totalItems = allFilteredServices.length;
-  const totalPages = totalItems > 0 ? 1 : 0;
-  const startIndex = 0;
-  const endIndex = totalItems;
-  const displayedServices = allFilteredServices;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / itemsPerPage) : 0;
+  const startIndex = totalItems > 0 ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = totalItems > 0 ? Math.min(startIndex + itemsPerPage, totalItems) : 0;
+  const displayedServices = allFilteredServices.slice(startIndex, endIndex);
 
   // Update selectAll when selectedRows changes
   React.useEffect(() => {
@@ -4301,7 +4301,7 @@ const CardTab: React.FC<CardTabProps> = ({
             marginLeft: 'auto'
           }}>
             <span style={{ fontSize: '11px', color: '#6b7280' }}>
-              Showing all services
+              Showing {totalItems === 0 ? 0 : startIndex + 1}-{endIndex} of {totalItems} services
             </span>
           </div>
         </div>
@@ -4877,7 +4877,7 @@ const CardTab: React.FC<CardTabProps> = ({
               color: '#6b7280',
               textAlign: isMobile ? 'center' : 'left'
             }}>
-              Showing all {totalItems} entries
+              Showing {totalItems === 0 ? 0 : startIndex + 1}-{endIndex} of {totalItems} entries
             </div>
 
             <div style={{

@@ -339,10 +339,10 @@ const ClientsTab: React.FC<ClientsTabProps> = ({
 
   // Pagination - Updated with 20 items per page default
   const totalItems = sortedCustomers.length;
-  const totalPages = totalItems > 0 ? 1 : 0;
-  const indexOfLastItem = totalItems;
-  const indexOfFirstItem = 0;
-  const paginatedCustomers = sortedCustomers;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / itemsPerPage) : 0;
+  const indexOfFirstItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage : 0;
+  const indexOfLastItem = totalItems > 0 ? Math.min(indexOfFirstItem + itemsPerPage, totalItems) : 0;
+  const paginatedCustomers = sortedCustomers.slice(indexOfFirstItem, indexOfLastItem);
 
   // Pagination handlers
   const goToPage = (page: number) => {
@@ -1870,7 +1870,7 @@ const ClientsTab: React.FC<ClientsTabProps> = ({
               fontSize: isMobile ? '12px' : '12px',
               color: '#6b7280'
             }}>
-              Showing <strong>all {totalItems}</strong> clients
+              Showing <strong>{totalItems === 0 ? 0 : indexOfFirstItem + 1}-{indexOfLastItem}</strong> of <strong>{totalItems}</strong> clients
             </span>
             
             <div className="results-per-page" style={{
@@ -2347,7 +2347,7 @@ const ClientsTab: React.FC<ClientsTabProps> = ({
             fontSize: isMobile ? '13px' : '14px',
             order: isMobile ? 2 : 1
           }}>
-            Showing <strong>all {totalItems}</strong> results
+            Showing <strong>{totalItems === 0 ? 0 : indexOfFirstItem + 1}-{indexOfLastItem}</strong> of <strong>{totalItems}</strong> results
           </div>
           
           <div style={{

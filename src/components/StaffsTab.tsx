@@ -467,10 +467,10 @@ const StaffTab: React.FC<StaffTabProps> = ({
   
   // Pagination calculations
   const totalItems = allFilteredStaff.length;
-  const totalPages = totalItems > 0 ? 1 : 0;
-  const startIndex = 0;
-  const endIndex = totalItems;
-  const displayStaff = allFilteredStaff;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / itemsPerPage) : 0;
+  const startIndex = totalItems > 0 ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = totalItems > 0 ? Math.min(startIndex + itemsPerPage, totalItems) : 0;
+  const displayStaff = allFilteredStaff.slice(startIndex, endIndex);
   
   const allStaff = staff;
 
@@ -4073,7 +4073,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
           marginLeft: 'auto'
         }}>
           <span style={{ fontSize: '11px', color: '#6b7280' }}>
-            Showing all staff
+            Showing {totalItems === 0 ? 0 : startIndex + 1}-{endIndex} of {totalItems} staff
           </span>
         </div>
       </div>
@@ -4578,7 +4578,7 @@ const StaffTab: React.FC<StaffTabProps> = ({
             color: '#6b7280',
             textAlign: isMobile ? 'center' : 'left'
           }}>
-            Showing all {totalItems} entries
+            Showing {totalItems === 0 ? 0 : startIndex + 1}-{endIndex} of {totalItems} entries
           </div>
 
           <div style={{

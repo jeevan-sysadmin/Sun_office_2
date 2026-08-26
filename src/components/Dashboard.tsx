@@ -1,5 +1,5 @@
 // C:\Users\JEEVANLAROSH\Downloads\Sun computers\sun office\src\components\Dashboard.tsx
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense, useDeferredValue, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiMenu,
@@ -458,6 +458,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [selectedFinancialMonth, setSelectedFinancialMonth] = useState<string>(() => {
@@ -653,6 +654,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
   const notificationRef = useRef<HTMLDivElement>(null);
   const notificationIdRef = useRef<number>(1);
   const lastNotifiedSuccessRef = useRef<string | null>(null);
+  const resizeFrameRef = useRef<number | null>(null);
   
   // Helper function to find battery by serial
   const findBatteryBySerial = (batterySerial: string): Battery | null => {
@@ -744,27 +746,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
   // Effects
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      const mobile = width < 768;
-      const tablet = width >= 768 && width < 1024;
-      
-      setIsMobile(mobile);
-      setIsTablet(tablet);
-      
-      if (mobile) {
-        setSidebarOpen(false);
-      } else if (tablet) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
+      if (resizeFrameRef.current !== null) {
+        cancelAnimationFrame(resizeFrameRef.current);
       }
+
+      resizeFrameRef.current = requestAnimationFrame(() => {
+        resizeFrameRef.current = null;
+
+        const width = window.innerWidth;
+        const mobile = width < 768;
+        const tablet = width >= 768 && width < 1024;
+
+        setIsMobile((prev) => (prev === mobile ? prev : mobile));
+        setIsTablet((prev) => (prev === tablet ? prev : tablet));
+        setSidebarOpen((prev) => {
+          const next = !mobile && !tablet;
+          return prev === next ? prev : next;
+        });
+      });
     };
     
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (resizeFrameRef.current !== null) {
+        cancelAnimationFrame(resizeFrameRef.current);
+      }
     };
   }, []);
   
@@ -772,13 +781,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     const handleScroll = () => {
       if (dashboardContentRef.current) {
         const { scrollTop } = dashboardContentRef.current;
-        setShowScrollTop(scrollTop > 300);
+        const shouldShow = scrollTop > 300;
+        setShowScrollTop((prev) => (prev === shouldShow ? prev : shouldShow));
       }
     };
     
     const contentElement = dashboardContentRef.current;
     if (contentElement) {
-      contentElement.addEventListener('scroll', handleScroll);
+      contentElement.addEventListener('scroll', handleScroll, { passive: true });
     }
     
     return () => {
@@ -1710,7 +1720,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
       switch(activeTab) {
         case 'dashboard':
           await Promise.all([
-            loadDashboardData(),
+            loadDashboardData(selectedFinancialMonth),
             loadServices(),
             loadInverterServices()
           ]);
@@ -2594,9 +2604,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...services];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(service => 
-        searchAcrossAllFields(service, searchTerm, 'service')
+        searchAcrossAllFields(service, deferredSearchTerm, 'service')
       );
     }
     
@@ -2637,9 +2647,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...inverterServices];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(service => 
-        searchAcrossAllFields(service, searchTerm, 'inverter_service')
+        searchAcrossAllFields(service, deferredSearchTerm, 'inverter_service')
       );
     }
     
@@ -2665,9 +2675,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...customers];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(customer => 
-        searchAcrossAllFields(customer, searchTerm, 'customer')
+        searchAcrossAllFields(customer, deferredSearchTerm, 'customer')
       );
     }
     
@@ -2678,9 +2688,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...batteries];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(battery => 
-        searchAcrossAllFields(battery, searchTerm, 'battery')
+        searchAcrossAllFields(battery, deferredSearchTerm, 'battery')
       );
     }
     
@@ -2712,9 +2722,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...inverters];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(inverter => 
-        searchAcrossAllFields(inverter, searchTerm, 'inverter')
+        searchAcrossAllFields(inverter, deferredSearchTerm, 'inverter')
       );
     }
     
@@ -2745,9 +2755,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     let filtered = [...staff];
     
     // Apply search filter using enhanced search function
-    if (searchTerm && searchTerm.trim() !== '') {
+    if (deferredSearchTerm && deferredSearchTerm.trim() !== '') {
       filtered = filtered.filter(member => 
-        searchAcrossAllFields(member, searchTerm, 'staff')
+        searchAcrossAllFields(member, deferredSearchTerm, 'staff')
       );
     }
     
@@ -2770,12 +2780,72 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
     return filtered;
   };
 
-  const filteredServices = getFilteredServices();
-  const filteredInverterServices = getFilteredInverterServices();
-  const filteredCustomers = getFilteredCustomers();
-  const filteredBatteries = getFilteredBatteries();
-  const filteredInverters = getFilteredInverters();
-  const filteredStaff = getFilteredStaff();
+  const filteredServices = useMemo(
+    () => getFilteredServices(),
+    [
+      services,
+      deferredSearchTerm,
+      filterStatus,
+      filterServiceType,
+      filterPriority,
+      filterClaimType,
+      filterWarrantyStatus,
+      filterAmcStatus
+    ]
+  );
+  const filteredInverterServices = useMemo(
+    () => getFilteredInverterServices(),
+    [
+      inverterServices,
+      deferredSearchTerm,
+      filterStatus,
+      filterPriority,
+      filterWarrantyStatus
+    ]
+  );
+  const filteredCustomers = useMemo(
+    () => getFilteredCustomers(),
+    [customers, deferredSearchTerm]
+  );
+  const filteredBatteries = useMemo(
+    () => getFilteredBatteries(),
+    [
+      batteries,
+      deferredSearchTerm,
+      filterBatteryType,
+      filterSpareStatus,
+      filterWarrantyStatus
+    ]
+  );
+  const filteredInverters = useMemo(
+    () => getFilteredInverters(),
+    [
+      inverters,
+      deferredSearchTerm,
+      filterInverterType,
+      filterInverterBrand,
+      filterInverterStatus,
+      filterWarrantyStatus
+    ]
+  );
+  const filteredStaff = useMemo(
+    () => getFilteredStaff(),
+    [
+      staff,
+      deferredSearchTerm,
+      filterStaffStatus,
+      filterStaffDepartment,
+      filterStaffRole
+    ]
+  );
+  const mergedFilteredServices = useMemo(
+    () => [...filteredServices, ...filteredInverterServices] as ServiceOrder[],
+    [filteredServices, filteredInverterServices]
+  );
+  const mergedAllServices = useMemo(
+    () => [...services, ...inverterServices] as ServiceOrder[],
+    [services, inverterServices]
+  );
   
   // Determine which product type to show in the ProductsTab
   const handleProductsTabChange = (tab: 'batteries' | 'inverters') => {
@@ -3357,8 +3427,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
                 <p>Sun Water Service - Inverter & Battery Service, Buy and Service Shop</p>
                 <p className="data-info">
                   Showing real-time data from database • Last updated: {new Date().toLocaleTimeString()}
-                  {searchTerm && searchTerm.trim() !== '' && (
-                    <span className="search-info"> • Search results for: "{searchTerm}"</span>
+                  {deferredSearchTerm && deferredSearchTerm.trim() !== '' && (
+                    <span className="search-info"> • Search results for: "{deferredSearchTerm}"</span>
                   )}
                 </p>
               </div>
@@ -3699,7 +3769,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
           {/* Cards Tab - Dedicated Card View */}
           {activeTab === 'cards' && (
             <CardTab
-              services={[...filteredServices, ...filteredInverterServices] as ServiceOrder[]}
+              services={mergedFilteredServices}
               customers={customers}
               loading={loading}
               error={error}
@@ -3723,7 +3793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
           {activeTab === 'revenue' && (
             <RevenueTab
               revenueStats={revenueStats}
-              services={[...services, ...inverterServices] as ServiceOrder[]}
+              services={mergedAllServices}
               loading={loading}
               error={error}
               onRefresh={loadRevenueData}
@@ -3732,7 +3802,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, user: propUser }) => {
 
           {activeTab === 'overall_report' && (
             <OverallReportTab
-              services={[...services, ...inverterServices] as ServiceOrder[]}
+              services={mergedAllServices}
               dashboardStats={dashboardStats}
               selectedMonth={selectedFinancialMonth}
               onMonthChange={setSelectedFinancialMonth}

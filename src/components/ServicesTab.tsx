@@ -95,6 +95,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
 
   // Handle resize
   useEffect(() => {
@@ -145,7 +146,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, dateFilterType, fromDate, toDate, filterStatus, filterPriority, filterClaimType]);
+  }, [searchTerm, dateFilterType, fromDate, toDate, filterStatus, filterPriority, filterClaimType, itemsPerPage]);
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -262,10 +263,10 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   
   // Pagination logic
   const totalItems = allFilteredServices.length;
-  const totalPages = totalItems > 0 ? 1 : 0;
-  const indexOfLastItem = totalItems;
-  const indexOfFirstItem = 0;
-  const displayServices = allFilteredServices;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / itemsPerPage) : 0;
+  const indexOfFirstItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage : 0;
+  const indexOfLastItem = totalItems > 0 ? Math.min(indexOfFirstItem + itemsPerPage, totalItems) : 0;
+  const displayServices = allFilteredServices.slice(indexOfFirstItem, indexOfLastItem);
 
   // Pagination handlers
   const goToPage = (page: number) => {
@@ -280,6 +281,11 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
   const goToLastPage = () => goToPage(totalPages);
   const goToNextPage = () => goToPage(currentPage + 1);
   const goToPreviousPage = () => goToPage(currentPage - 1);
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   // Get page numbers to display
   const getPageNumbers = (): (number | string)[] => {
@@ -1982,7 +1988,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
               fontSize: isMobile ? '12px' : '12px',
               color: '#6b7280'
             }}>
-              Showing <strong>all {totalItems}</strong> service calls
+              Showing <strong>{totalItems === 0 ? 0 : indexOfFirstItem + 1}-{indexOfLastItem}</strong> of <strong>{totalItems}</strong> service calls
             </span>
             
             {searchTerm && (
@@ -2598,7 +2604,7 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
             fontSize: isMobile ? '13px' : '14px',
             order: isMobile ? 2 : 1
           }}>
-            Showing <strong>all {totalItems}</strong> results
+            Showing <strong>{totalItems === 0 ? 0 : indexOfFirstItem + 1}-{indexOfLastItem}</strong> of <strong>{totalItems}</strong> results
           </div>
           
           <div style={{
@@ -2632,6 +2638,26 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
               <FiChevronsLeft size={isMobile ? 14 : 16} />
               {!isMobile && <span>First</span>}
             </MotionButton>
+
+            <select
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              style={{
+                padding: isMobile ? '8px 10px' : '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
+                color: '#4b5563',
+                fontSize: isMobile ? '13px' : '14px',
+                cursor: 'pointer'
+              }}
+              title="Items per page"
+            >
+              <option value={10}>10 / page</option>
+              <option value={20}>20 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
 
             {/* Previous Page Button */}
             <MotionButton

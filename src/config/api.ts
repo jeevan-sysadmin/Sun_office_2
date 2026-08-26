@@ -8,11 +8,32 @@ const normalizeApiBaseUrl = (value?: string): string => {
 };
 
 const buildDefaultApiBaseUrl = (): string => {
+  const localhostApi = "http://localhost:5000/api";
+
   if (typeof window === "undefined") {
-    return "http://localhost:5000/api";
+    return localhostApi;
   }
 
-  return `${window.location.origin}/api`;
+  try {
+    const hostname = window.location.hostname.trim().toLowerCase();
+    const isLocalhost =
+      hostname === "localhost" ||
+      hostname === "::1" ||
+      hostname === "[::1]" ||
+      /^127(?:\.\d{1,3}){3}$/.test(hostname) ||
+      /^10(?:\.\d{1,3}){3}$/.test(hostname) ||
+      /^192\.168(?:\.\d{1,3}){2}$/.test(hostname) ||
+      (() => {
+        const match = hostname.match(/^172\.(\d{1,3})(?:\.\d{1,3}){2}$/);
+        if (!match) return false;
+        const secondOctet = Number(match[1]);
+        return secondOctet >= 16 && secondOctet <= 31;
+      })();
+
+    return isLocalhost ? `${window.location.origin}/api` : localhostApi;
+  } catch {
+    return localhostApi;
+  }
 };
 
 const fallbackApiBaseUrl =

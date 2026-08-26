@@ -9796,3 +9796,81 @@ body {
   font-size: 0.8rem;
   font-weight: 500;
 }
+
+/* Final responsive overrides */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.dashboard {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.main-content,
+.main-content.sidebar-open,
+.main-content.sidebar-closed {
+  flex: 1 1 auto;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.top-nav,
+.dashboard-content,
+.header-section,
+.orders-section,
+.clients-section,
+.products-section,
+.delivery-section,
+.activities-section,
+.chart-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nav-left,
+.nav-right,
+.search-box,
+.user-menu-info {
+  min-width: 0;
+}
+
+.search-input {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .user-menu {
+    min-width: 0;
+    max-width: 140px;
+  }
+
+  .user-menu-info span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-content {
+    padding: 14px;
+  }
+}

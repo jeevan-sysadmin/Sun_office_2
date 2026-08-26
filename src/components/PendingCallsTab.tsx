@@ -164,6 +164,8 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [selectedCall, setSelectedCall] = useState<PendingCall | null>(null);
   const [showStats, setShowStats] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -211,6 +213,10 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
       loadPendingCalls(selectedCity);
     }
   }, [selectedCity]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCity, searchTerm, priorityFilter, itemsPerPage]);
   
   // Filter calls based on search term and priority
   useEffect(() => {
@@ -226,6 +232,13 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
       setSelectAll(false);
     }
   }, [selectedCalls, filteredCalls]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredCalls.length / itemsPerPage));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, filteredCalls.length, itemsPerPage]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -468,6 +481,45 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
   const handleClearSelection = () => {
     setSelectedCalls(new Set());
     setSelectAll(false);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filteredCalls.length / itemsPerPage));
+  const startIndex = filteredCalls.length === 0 ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredCalls.length);
+  const paginatedCalls = filteredCalls.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.max(1, Math.min(page, totalPages));
+    setCurrentPage(nextPage);
+  };
+
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+  const goToNextPage = () => goToPage(currentPage + 1);
+
+  const getVisiblePages = () => {
+    const pages: (number | string)[] = [];
+    const delta = 1;
+    let previousPage: number | undefined;
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      if (
+        page === 1 ||
+        page === totalPages ||
+        (page >= currentPage - delta && page <= currentPage + delta)
+      ) {
+        if (previousPage) {
+          if (page - previousPage === 2) {
+            pages.push(previousPage + 1);
+          } else if (page - previousPage > 2) {
+            pages.push("...");
+          }
+        }
+        pages.push(page);
+        previousPage = page;
+      }
+    }
+
+    return pages;
   };
   
   // Get selected calls data
@@ -1249,7 +1301,7 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
             </div>
             
             <span className="results-count">
-              Showing <strong>{filteredCalls.length}</strong> of <strong>{totalCalls}</strong> pending calls
+              Showing <strong>{filteredCalls.length === 0 ? 0 : startIndex + 1}-{endIndex}</strong> of <strong>{filteredCalls.length}</strong> filtered pending calls
             </span>
             
             {searchTerm && (
@@ -1275,8 +1327,94 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
       
       {/* List View with Checkboxes - REMOVED View Details button */}
       {selectedCity && !loading && !error && filteredCalls.length > 0 && (
+        <>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginBottom: "16px",
+            padding: "12px 16px",
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+          }}
+        >
+          <span style={{ color: "#4b5563", fontSize: "14px", fontWeight: 500 }}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <button
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === 1 ? "#f3f4f6" : "#fff",
+                color: currentPage === 1 ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+              }}
+            >
+              Previous
+            </button>
+            {getVisiblePages().map((page, index) => (
+              <button
+                key={`top-${page}-${index}`}
+                onClick={() => typeof page === "number" && goToPage(page)}
+                disabled={page === "..." || page === currentPage}
+                style={{
+                  border: "1px solid #d1d5db",
+                  background: page === currentPage ? "#2563eb" : "#fff",
+                  color: page === currentPage ? "#fff" : "#374151",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  minWidth: "40px",
+                  cursor: page === "..." ? "default" : "pointer",
+                }}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === totalPages ? "#f3f4f6" : "#fff",
+                color: currentPage === totalPages ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Next
+            </button>
+          </div>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#374151", fontSize: "14px" }}>
+            Items per page
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                padding: "6px 10px",
+                background: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </label>
+        </div>
         <div className="pending-calls-list" ref={printRef}>
-          {filteredCalls.map((call, index) => {
+          {paginatedCalls.map((call, index) => {
             const hasService = !!call.water_service_status.last_service;
             const urgency = getUrgencyLevel(call.water_service_status.days_since_last_service, hasService);
             const isSelected = selectedCall?.id === call.id;
@@ -1431,6 +1569,102 @@ const PendingCallsTab: React.FC<PendingCallsTabProps> = ({
             );
           })}
         </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginTop: "20px",
+            padding: "16px",
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+          }}
+        >
+          <span style={{ color: "#4b5563", fontSize: "14px" }}>
+            Showing <strong>{startIndex + 1}-{endIndex}</strong> of <strong>{filteredCalls.length}</strong> results
+          </span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <button
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === 1 ? "#f3f4f6" : "#fff",
+                color: currentPage === 1 ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+              }}
+            >
+              First
+            </button>
+            <button
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === 1 ? "#f3f4f6" : "#fff",
+                color: currentPage === 1 ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+              }}
+            >
+              Previous
+            </button>
+            {getVisiblePages().map((page, index) => (
+              <button
+                key={`${page}-${index}`}
+                onClick={() => typeof page === "number" && goToPage(page)}
+                disabled={page === "..." || page === currentPage}
+                style={{
+                  border: "1px solid #d1d5db",
+                  background: page === currentPage ? "#4f46e5" : "#fff",
+                  color: page === currentPage ? "#fff" : "#374151",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  minWidth: "40px",
+                  cursor: page === "..." ? "default" : "pointer",
+                }}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === totalPages ? "#f3f4f6" : "#fff",
+                color: currentPage === totalPages ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Next
+            </button>
+            <button
+              onClick={() => goToPage(totalPages)}
+              disabled={currentPage === totalPages}
+              style={{
+                border: "1px solid #d1d5db",
+                background: currentPage === totalPages ? "#f3f4f6" : "#fff",
+                color: currentPage === totalPages ? "#9ca3af" : "#374151",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+              }}
+            >
+              Last
+            </button>
+          </div>
+        </div>
+        </>
       )}
       
       {/* No Results Found */}
